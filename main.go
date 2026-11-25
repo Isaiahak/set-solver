@@ -41,13 +41,12 @@ type Combination struct {
 func main() {
 }
 
-func add(item Item) {
+func add(item Item, combType string) {
 	ItemArr = append(ItemArr, item)
 	ItemMap[item]++
-	added := true
 
 	if ItemMap[item] > 1 {
-		updateOptions(item, added)
+		addOption(item, combType)
 	}
 
 }
@@ -64,7 +63,7 @@ func remove(item Item) {
 	}
 
 	if ItemMap[item] == 0 {
-		updateOptions(item, false)
+		removeOption(item)
 	}
 
 }
@@ -74,37 +73,53 @@ func clear() {
 	ItemMap = make(map[Item]int)
 }
 
-func updateOptions(item Item, added bool) {
-	if added {
-		for _, comb := range ItemCombs {
-			if comb.SkillCounts[item.s1] > 0 &&
-				comb.SkillCounts[item.s2] > 0 &&
-				comb.SkillCounts[item.s3] > 0 {
-				comb.SkillCounts[item.s1]++
-				comb.SkillCounts[item.s2]++
-				comb.SkillCounts[item.s3]++
-				comb.CombArr = append(comb.CombArr, item)
-				CombsCount[&comb]++
+func addOption(item Item, combType string) {
+	for _, comb := range ItemCombs {
+		if comb.SkillCounts[item.s1] > 0 &&
+			comb.SkillCounts[item.s2] > 0 &&
+			comb.SkillCounts[item.s3] > 0 {
+			var temp Combination
+			for i := range comb.CombArr {
+				temp.CombArr = append(temp.CombArr, comb.CombArr[i])
 			}
-		}
-	} else {
-		for _, comb := range ItemCombs {
-			if slices.Contains(comb.CombArr, item) {
-				comb.SkillCounts[item.s1]--
-				comb.SkillCounts[item.s2]--
-				comb.SkillCounts[item.s3]--
-				var i int
-				for i = range comb.CombArr {
-					if comb.CombArr[i] == item {
-						break
-					}
-				}
-				temp := comb.CombArr[:i]
-				temp = append(temp, comb.CombArr[i+1:]...)
-				CombsCount[&comb]--
+			for i := range comb.SkillCounts {
+				temp.SkillCounts[i] = comb.SkillCounts[i]
 			}
+			temp.SkillCounts[item.s1]++
+			temp.SkillCounts[item.s2]++
+			temp.SkillCounts[item.s3]++
+			temp.CombArr = append(temp.CombArr, item)
+			ItemCombs = append(ItemCombs, temp)
+			CombsCount[&temp] = CombsCount[&comb] + 1 
 		}
 	}
+
+	newComb := createCombination(combType)
+	newComb.SkillCounts[item.s1]--
+	newComb.SkillCounts[item.s2]--
+	newComb.SkillCounts[item.s3]--
+
+	ItemCombs = append(ItemCombs, newComb)
+}
+
+func removeOption(item Item) {
+	removed := []int{}
+	for i, comb := range ItemCombs {
+		if slices.Contains(comb.CombArr, item) {
+			removed = append(removed, i)	
+		}
+	}
+
+	newCombs := []Combination{}
+	for i := range ItemCombs {
+		for _, idx := range removed {
+			if i == idx {
+				continue
+			}
+			newCombs = append(newCombs, ItemCombs[i])
+		}
+	}
+	ItemCombs = newCombs
 }
 
 func createCombination(combType string) Combination {
@@ -154,5 +169,10 @@ func displayItems() {
 }
 
 func displayCombinations() {
-
+	slices.SortFunc(ItemCombs, func(a int, b int) int{
+		 if CombCounts[ItemCombs[a]] > CombCounts[ItemCombs[b]] {
+			 return 1
+		 }
+		 return 0
+	})
 }
